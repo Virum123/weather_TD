@@ -162,7 +162,55 @@ def append_to_sheet(
     if existing_header != headers:
         worksheet.update(range_name="A1", values=[headers])
 
+    if is_duplicate_for_same_hour(worksheet, row, headers):
+        print(f"Skipped duplicate hourly row for worksheet={worksheet_name}")
+        return
+
     worksheet.append_row(list(row.values()), value_input_option="USER_ENTERED")
+
+
+def hour_key(iso_dt: str) -> str:
+    dt = datetime.fromisoformat(iso_dt.replace("Z", "+00:00")).astimezone(timezone.utc)
+    return dt.strftime("%Y-%m-%dT%H")
+
+
+def safe_float(value: str | float | int | None) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_duplicate_for_same_hour(worksheet, row: dict, headers: list[str]) -> bool:
+    values = worksheet.get_all_values()
+    if len(values) <= 1:
+        return False
+
+    last = values[-1]
+    last_map = {h: (last[i] if i < len(last) else "") for i, h in enumerate(headers)}
+
+    last_country = str(last_map.get("country", "")).upper()
+    row_country = str(row.get("country", "")).upper()
+    if last_country != row_country:
+        return False
+
+    last_lat = safe_float(last_map.get("lat"))
+    last_lon = safe_float(last_map.get("lon"))
+    row_lat = safe_float(row.get("lat"))
+    row_lon = safe_float(row.get("lon"))
+    if None in (last_lat, last_lon, row_lat, row_lon):
+        return False
+    if abs(last_lat - row_lat) > 0.01 or abs(last_lon - row_lon) > 0.01:
+        return False
+
+    last_collected = str(last_map.get("collected_at_utc", "")).strip()
+    row_collected = str(row.get("collected_at_utc", "")).strip()
+    if not last_collected or not row_collected:
+        return False
+
+    return hour_key(last_collected) == hour_key(row_collected)
 
 
 def parse_args() -> argparse.Namespace:
