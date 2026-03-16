@@ -1,0 +1,10 @@
+.env
+service_account.json
+weather-td-*.json
+__pycache__/
+*.pyc
+.venv/
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
