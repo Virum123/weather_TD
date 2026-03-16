@@ -57,6 +57,7 @@ git push origin main
    - `raw_data_kr`
    - `raw_data_jp`
 3. 각 탭에 최신 시각 행이 추가되었는지 확인
+4. `collected_at_utc`는 매시 정각(`HH:00:00+00:00`)으로 저장되고, 실제 액션 실행 시각은 `executed_at_utc`에 기록되는지 확인
 
 ## 자주 나는 문제
 

@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 from datetime import datetime, timezone
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import gspread
@@ -48,15 +49,19 @@ def get_air_payload(api_key: str, lat: float, lon: float) -> dict:
 
 
 def build_row(
-    weather: dict, air: dict, tz_name: str, location_name_override: str | None
+    weather: dict,
+    air: dict,
+    tz_name: str,
+    location_name_override: str | None,
+    collected_at_utc: datetime,
+    executed_at_utc: datetime,
 ) -> dict:
-    now_utc = datetime.now(timezone.utc)
     resolved_tz = tz_name
     try:
-        local_dt = now_utc.astimezone(ZoneInfo(tz_name))
+        local_dt = collected_at_utc.astimezone(ZoneInfo(tz_name))
     except ZoneInfoNotFoundError:
         resolved_tz = "UTC"
-        local_dt = now_utc
+        local_dt = collected_at_utc
 
     air_item = air["list"][0]
     components = air_item.get("components", {})
@@ -65,8 +70,9 @@ def build_row(
     location_name = location_name_override.strip() if location_name_override else api_location_name
 
     return {
-        "collected_at_utc": now_utc.isoformat(),
+        "collected_at_utc": collected_at_utc.isoformat(),
         "collected_at_local": local_dt.isoformat(),
+        "executed_at_utc": executed_at_utc.isoformat(),
         "timezone": resolved_tz,
         "location_name": location_name,
         "country": weather.get("sys", {}).get("country", ""),
@@ -127,6 +133,14 @@ def parse_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def normalize_collection_time(
+    executed_at_utc: datetime, mode: Literal["actual", "hour"]
+) -> datetime:
+    if mode == "hour":
+        return executed_at_utc.replace(minute=0, second=0, microsecond=0)
+    return executed_at_utc
 
 
 def resolve_worksheet_name(
@@ -240,6 +254,12 @@ def parse_args() -> argparse.Namespace:
         help="Optional location display name override (e.g. Tokyo).",
     )
     parser.add_argument("--timezone", default=None, help="IANA timezone, e.g. Asia/Seoul")
+    parser.add_argument(
+        "--timestamp-mode",
+        choices=("actual", "hour"),
+        default=None,
+        help="Store the real execution time or align collected_at timestamps to the hour.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print payload only")
     return parser.parse_args()
 
@@ -262,7 +282,17 @@ def main() -> None:
     tz_name = args.timezone or COUNTRY_TIMEZONE_MAP.get(country_code) or os.getenv(
         "DEFAULT_TIMEZONE", "UTC"
     )
-    row = build_row(weather, air, tz_name, args.location_name)
+    timestamp_mode = args.timestamp_mode or os.getenv("COLLECTION_TIMESTAMP_MODE", "actual")
+    executed_at_utc = datetime.now(timezone.utc)
+    collected_at_utc = normalize_collection_time(executed_at_utc, timestamp_mode)
+    row = build_row(
+        weather,
+        air,
+        tz_name,
+        args.location_name,
+        collected_at_utc,
+        executed_at_utc,
+    )
 
     print("Collected row:")
     print(json.dumps(row, ensure_ascii=False, indent=2))

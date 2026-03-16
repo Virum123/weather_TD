@@ -2,8 +2,8 @@ name: Hourly Weather Collection
 
 on:
   schedule:
-    # Every hour at minute 5 (UTC)
-    - cron: "5 * * * *"
+    # Every hour at minute 0 (UTC)
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,7 @@ jobs:
       GOOGLE_SERVICE_ACCOUNT_FILE: service_account.json
       ALLOWED_COUNTRIES: KR,JP
       SPLIT_WORKSHEET_BY_COUNTRY: "true"
+      COLLECTION_TIMESTAMP_MODE: hour
 
     steps:
       - name: Checkout

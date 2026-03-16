@@ -84,9 +84,10 @@ python src/ingestion/collect_weather_to_sheets.py --gps-json "{\"lat\":35.6895,\
 3. `Actions` 탭에서 `Hourly Weather Collection` 워크플로 활성화
 
 동작:
-- 매시간(UTC 기준 매시 05분)에 실행
+- 매시간(UTC 기준 매시 정각)에 실행
 - 서울(`raw_data_kr`) + 도쿄(`raw_data_jp`) 각각 append
 - 도쿄 데이터는 `location_name=Tokyo`로 저장
+- `collected_at_utc`는 시간 단위(`HH:00:00`)로 정렬되어 저장되고, 실제 실행 시각은 `executed_at_utc`에 별도 기록
 
 비용 참고:
 - GitHub Actions는 리포지토리 유형/요금제에 따라 무료 사용량이 다릅니다.
