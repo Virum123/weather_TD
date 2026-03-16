@@ -69,7 +69,6 @@ def build_row(
         "collected_at_local": local_dt.isoformat(),
         "timezone": resolved_tz,
         "location_name": location_name,
-        "api_location_name": api_location_name,
         "country": weather.get("sys", {}).get("country", ""),
         "lat": weather.get("coord", {}).get("lat", ""),
         "lon": weather.get("coord", {}).get("lon", ""),
