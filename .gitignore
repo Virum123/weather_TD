@@ -8,3 +8,8 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+android-app/.gradle/
+android-app/.idea/
+android-app/local.properties
+android-app/**/build/
+*.iml
